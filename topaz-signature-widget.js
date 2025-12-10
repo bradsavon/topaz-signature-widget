@@ -22,7 +22,9 @@
         signatureData: null,
         signatureImage: null,
         tabletTimer: null,
-        canvasContext: null
+        canvasContext: null,
+        justFinishedCapture: false,
+        connectionCheckInterval: null
     };
     
     // DOM elements
@@ -103,7 +105,7 @@
             checkDeviceConnection();
             
             // Setup periodic connection check (every 3 seconds)
-            setInterval(checkDeviceConnection, 3000);
+            widgetState.connectionCheckInterval = setInterval(checkDeviceConnection, 3000);
             
         } catch (error) {
             console.error('Error initializing Topaz:', error);
@@ -113,6 +115,8 @@
     
     /**
      * Check if Topaz device is connected
+     * Note: GetTabletState() returns 1 when active, 0 when inactive (but hardware may still be connected)
+     * The key insight: if GetTabletState() doesn't throw, the service/hardware is available
      */
     function checkDeviceConnection() {
         try {
@@ -122,35 +126,50 @@
                 return;
             }
             
+            // If we just finished a capture, skip this check (tablet is intentionally inactive)
+            if (widgetState.justFinishedCapture) {
+                // Reset flag after a delay
+                setTimeout(function() {
+                    widgetState.justFinishedCapture = false;
+                }, 2000);
+                return;
+            }
+            
             // Try to get device status
+            // If this succeeds (no error), the service/hardware is available
             const tabletState = GetTabletState();
             console.log('Tablet state:', tabletState);
             
-            // TabletState returns 1 if connected and active, 0 if not connected
-            // It might return as string or number
-            const isConnected = tabletState === '1' || tabletState === 1 || tabletState === '1\n' || tabletState === '1\r\n';
+            // TabletState returns 1 if active, 0 if inactive
+            const isActive = tabletState === '1' || tabletState === 1 || tabletState === '1\n' || tabletState === '1\r\n';
             
-            if (isConnected) {
+            // If we can call GetTabletState without error, hardware/service is available
+            // We consider it "connected" if we can communicate with it, even if not currently active
+            if (isActive) {
+                // Tablet is active
                 if (!widgetState.deviceConnected) {
                     widgetState.deviceConnected = true;
                     updateDeviceStatus('Topaz Signature Pad connected', 'success');
                     enableControls();
                 }
             } else {
-                // Always update status if not connected (fixes stuck "Checking..." message)
-                if (widgetState.deviceConnected) {
-                    widgetState.deviceConnected = false;
-                    updateDeviceStatus('Topaz Signature Pad disconnected', 'warning');
-                    disableControls();
-                } else {
-                    // First check - device not connected yet
-                    updateDeviceStatus('Topaz Signature Pad not connected. Please connect the device.', 'warning');
+                // Tablet is inactive (state = 0)
+                // If we've successfully connected before, assume hardware is still available
+                // Only show "not connected" on first check or if we get an error
+                if (!widgetState.deviceConnected) {
+                    // First check - device not active yet, but service is available
+                    // Show as ready/available since we can communicate with it
+                    widgetState.deviceConnected = true;
+                    updateDeviceStatus('Topaz Signature Pad ready', 'success');
+                    enableControls();
                 }
+                // If already marked as connected, keep it that way (just inactive, not disconnected)
             }
         } catch (error) {
             console.error('Error checking device connection:', error);
+            // Only mark as disconnected if there's a real error (service unavailable)
             widgetState.deviceConnected = false;
-            updateDeviceStatus('Error checking device: ' + error.message, 'error');
+            updateDeviceStatus('Topaz Signature Pad not connected. Please connect the device.', 'warning');
             disableControls();
         }
     }
@@ -351,6 +370,9 @@
                 SetTabletState(0, widgetState.tabletTimer);
                 widgetState.tabletTimer = null;
             }
+            
+            // Mark that we just finished capture to prevent false "disconnected" status
+            widgetState.justFinishedCapture = true;
             
             // Set compression mode and image properties before getting signature
             if (typeof SetSigCompressionMode !== 'undefined') {
