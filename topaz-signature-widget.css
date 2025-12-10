@@ -1,0 +1,262 @@
+/**
+ * Topaz Signature Widget Styles
+ * Custom styling for Jotform widget
+ */
+
+.topaz-signature-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.signature-header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.signature-header h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.device-status {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.device-status.status-info {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.device-status.status-success {
+    background-color: #e8f5e9;
+    color: #388e3c;
+}
+
+.device-status.status-warning {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.device-status.status-error {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+.signature-pad-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.signature-display {
+    position: relative;
+    display: inline-block;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    background: #fafafa;
+    padding: 10px;
+    min-height: 220px;
+    width: 100%;
+    max-width: 520px;
+}
+
+.signature-display.has-signature {
+    border-color: #4caf50;
+    background: #ffffff;
+}
+
+.signature-display canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    background: #ffffff;
+}
+
+.signature-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #999;
+    font-size: 14px;
+    margin: 0;
+    pointer-events: none;
+}
+
+.signature-display.has-signature .signature-placeholder {
+    display: none;
+}
+
+.signature-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:not(:disabled):active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background-color: #2196f3;
+    color: #ffffff;
+}
+
+.btn-primary:not(:disabled):hover {
+    background-color: #1976d2;
+}
+
+.btn-secondary {
+    background-color: #757575;
+    color: #ffffff;
+}
+
+.btn-secondary:not(:disabled):hover {
+    background-color: #616161;
+}
+
+.btn-success {
+    background-color: #4caf50;
+    color: #ffffff;
+}
+
+.btn-success:not(:disabled):hover {
+    background-color: #388e3c;
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+.signature-info {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e8f5e9;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.success-message {
+    margin: 0 0 8px 0;
+    color: #388e3c;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.timestamp {
+    margin: 0;
+    color: #666;
+    font-size: 12px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .topaz-signature-container {
+        padding: 15px;
+    }
+    
+    .signature-display {
+        min-height: 180px;
+    }
+    
+    .signature-display canvas {
+        width: 100%;
+        height: auto;
+    }
+    
+    .btn {
+        min-width: 120px;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+    .signature-controls {
+        flex-direction: column;
+    }
+    
+    .signature-controls .btn {
+        width: 100%;
+    }
+}
+
+/* Loading state */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #2196f3;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Print styles */
+@media print {
+    .signature-controls {
+        display: none;
+    }
+    
+    .device-status {
+        display: none;
+    }
+    
+    .signature-display {
+        border: 1px solid #000;
+    }
+}
+

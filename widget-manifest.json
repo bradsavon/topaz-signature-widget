@@ -1,0 +1,76 @@
+{
+  "name": "Topaz Signature Widget",
+  "version": "1.0.0",
+  "description": "Custom widget for integrating Topaz Signature Pad with Jotform Smart PDFs",
+  "author": "Custom Widget Developer",
+  "widgetType": "signature",
+  "category": "form-elements",
+  "icon": "✍️",
+  "files": [
+    "topaz-signature-widget.html",
+    "topaz-signature-widget.js",
+    "topaz-signature-widget.css"
+  ],
+  "dependencies": {
+    "external": [
+      {
+        "name": "Topaz SigWeb SDK",
+        "url": "https://www.topazsystems.com/sigweb/sigweb.js",
+        "required": true
+      }
+    ]
+  },
+  "settings": {
+    "fieldName": {
+      "type": "text",
+      "label": "Field Name",
+      "default": "signature",
+      "description": "Name of the form field for signature data"
+    },
+    "required": {
+      "type": "checkbox",
+      "label": "Required Field",
+      "default": true,
+      "description": "Make signature capture required"
+    },
+    "canvasWidth": {
+      "type": "number",
+      "label": "Canvas Width",
+      "default": 500,
+      "min": 200,
+      "max": 1000,
+      "description": "Width of signature display canvas"
+    },
+    "canvasHeight": {
+      "type": "number",
+      "label": "Canvas Height",
+      "default": 200,
+      "min": 100,
+      "max": 500,
+      "description": "Height of signature display canvas"
+    }
+  },
+  "jotformCompatibility": {
+    "minVersion": "2021.1",
+    "features": [
+      "smart-pdf",
+      "custom-widgets",
+      "form-builder"
+    ]
+  },
+  "browserCompatibility": {
+    "chrome": ">= 80",
+    "firefox": ">= 75",
+    "edge": ">= 80",
+    "safari": ">= 13"
+  },
+  "requirements": {
+    "hardware": [
+      "Topaz Signature Pad (USB connected)"
+    ],
+    "software": [
+      "Topaz SigWeb Software (installed on client machine)"
+    ]
+  }
+}
+

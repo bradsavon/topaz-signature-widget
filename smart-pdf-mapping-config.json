@@ -1,0 +1,84 @@
+{
+  "widgetName": "Topaz Signature Widget",
+  "version": "1.0.0",
+  "description": "Custom Jotform widget for Topaz Signature Pad integration with Smart PDF mapping",
+  
+  "jotformIntegration": {
+    "fieldName": "signature",
+    "fieldType": "signature",
+    "required": true,
+    "smartPdfMapping": {
+      "enabled": true,
+      "fieldMapping": {
+        "signatureImage": {
+          "pdfFieldName": "signature",
+          "pdfFieldType": "signature",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 80
+          }
+        },
+        "signatureData": {
+          "pdfFieldName": "signatureData",
+          "pdfFieldType": "text",
+          "storeAsMetadata": true
+        }
+      }
+    }
+  },
+  
+  "topazConfiguration": {
+    "sdkVersion": "SigWeb",
+    "requiredSoftware": "SigWeb",
+    "deviceTypes": [
+      "Topaz T-S460",
+      "Topaz T-S460-HSB-R",
+      "Topaz T-LKB462",
+      "Topaz T-LKB462-HSB-R"
+    ],
+    "connectionType": "USB",
+    "apiEndpoints": {
+      "sigweb": "https://www.topazsystems.com/sigweb/sigweb.js"
+    }
+  },
+  
+  "signatureFormat": {
+    "imageFormat": "PNG",
+    "imageQuality": 1.0,
+    "dataFormat": "JSON",
+    "includeMetadata": true,
+    "metadataFields": [
+      "timestamp",
+      "deviceInfo",
+      "signatureFormat"
+    ]
+  },
+  
+  "instructions": {
+    "installation": [
+      "1. Install Topaz SigWeb software on the computer",
+      "2. Connect Topaz Signature Pad via USB",
+      "3. Upload widget files to Jotform",
+      "4. Add widget to your form",
+      "5. Configure Smart PDF mapping"
+    ],
+    "usage": [
+      "1. Ensure Topaz Signature Pad is connected",
+      "2. Click 'Capture Signature' button",
+      "3. Sign on the Topaz pad",
+      "4. Review signature on screen",
+      "5. Click 'Accept Signature' to save",
+      "6. Signature will be mapped to Smart PDF automatically"
+    ],
+    "smartPdfMapping": [
+      "1. Create or upload your PDF in Jotform",
+      "2. Enable Smart PDF Forms",
+      "3. In Smart PDF editor, drag the signature field from your form",
+      "4. Drop it onto the signature area in your PDF",
+      "5. The Topaz signature will automatically map to this field"
+    ]
+  }
+}
+

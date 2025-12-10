@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topaz Signature Widget</title>
+    <link rel="stylesheet" href="topaz-signature-widget.css">
+</head>
+<body>
+    <div class="topaz-signature-container" id="topazSignatureContainer">
+        <div class="signature-header">
+            <h3>Signature Capture</h3>
+            <p class="device-status" id="deviceStatus">Checking for Topaz Signature Pad...</p>
+        </div>
+        
+        <div class="signature-pad-container">
+            <div class="signature-display" id="signatureDisplay">
+                <canvas id="signatureCanvas" width="500" height="200"></canvas>
+                <p class="signature-placeholder">Signature will appear here</p>
+            </div>
+        </div>
+        
+        <div class="signature-controls">
+            <button type="button" class="btn btn-primary" id="captureBtn" disabled>
+                <span class="btn-icon">✍️</span>
+                Capture Signature
+            </button>
+            <button type="button" class="btn btn-secondary" id="clearBtn" disabled>
+                <span class="btn-icon">🗑️</span>
+                Clear
+            </button>
+            <button type="button" class="btn btn-success" id="acceptBtn" disabled>
+                <span class="btn-icon">✓</span>
+                Accept Signature
+            </button>
+        </div>
+        
+        <div class="signature-info" id="signatureInfo" style="display: none;">
+            <p class="success-message">✓ Signature captured successfully</p>
+            <p class="timestamp" id="signatureTimestamp"></p>
+        </div>
+        
+        <!-- Hidden input for Jotform -->
+        <input type="hidden" id="signatureData" name="signatureData" />
+        <input type="hidden" id="signatureImage" name="signatureImage" />
+    </div>
+    
+    <!-- Topaz SigWeb SDK -->
+    <script src="https://www.topazsystems.com/sigweb/sigweb.js"></script>
+    <script src="topaz-signature-widget.js"></script>
+</body>
+</html>
+
