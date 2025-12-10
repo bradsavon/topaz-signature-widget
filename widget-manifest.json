@@ -15,7 +15,7 @@
     "external": [
       {
         "name": "Topaz SigWeb SDK",
-        "url": "https://www.topazsystems.com/sigweb/sigweb.js",
+        "url": "https://www.sigplusweb.com/SigWebTablet.js",
         "required": true
       }
     ]

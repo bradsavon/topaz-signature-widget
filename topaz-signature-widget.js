@@ -8,7 +8,7 @@
     
     // Widget configuration
     const CONFIG = {
-        sigwebUrl: 'https://www.topazsystems.com/sigweb',
+        sigwebUrl: 'https://www.sigplusweb.com',
         canvasWidth: 500,
         canvasHeight: 200,
         imageFormat: 'PNG',
@@ -21,7 +21,8 @@
         signatureCaptured: false,
         signatureData: null,
         signatureImage: null,
-        topazObject: null
+        tabletTimer: null,
+        canvasContext: null
     };
     
     // DOM elements
@@ -71,20 +72,38 @@
      */
     function initializeTopaz() {
         try {
-            // Check if SigWeb is available
-            if (typeof SigWeb === 'undefined') {
-                updateDeviceStatus('SigWeb SDK not loaded. Please ensure SigWeb is installed.', 'error');
+            // Set initial status
+            updateDeviceStatus('Initializing Topaz Signature Pad...', 'info');
+            
+            // Check if SigWebTablet.js is loaded by trying to call GetTabletState
+            // This is the same pattern used in the working example
+            if (typeof GetTabletState === 'undefined') {
+                updateDeviceStatus('SigWeb SDK not loaded. Please ensure SigWebTablet.js is loaded.', 'error');
                 return;
             }
             
-            // Initialize Topaz object
-            widgetState.topazObject = new SigWeb();
+            try {
+                // Try to call GetTabletState to see if service is available
+                GetTabletState();
+            } catch (e) {
+                console.log('SigWeb service not available:', e);
+                updateDeviceStatus('SigWeb service not installed. Please install SigWeb software.', 'error');
+                return;
+            }
             
-            // Check device connection
+            // Get canvas context for tablet display
+            if (elements.signatureCanvas) {
+                widgetState.canvasContext = elements.signatureCanvas.getContext('2d');
+            } else {
+                updateDeviceStatus('Canvas element not found', 'error');
+                return;
+            }
+            
+            // Check device connection immediately
             checkDeviceConnection();
             
-            // Setup periodic connection check
-            setInterval(checkDeviceConnection, 5000);
+            // Setup periodic connection check (every 3 seconds)
+            setInterval(checkDeviceConnection, 3000);
             
         } catch (error) {
             console.error('Error initializing Topaz:', error);
@@ -97,32 +116,42 @@
      */
     function checkDeviceConnection() {
         try {
-            if (!widgetState.topazObject) {
+            // Check if SigWeb functions are available
+            if (typeof GetTabletState === 'undefined') {
+                updateDeviceStatus('SigWeb functions not available', 'error');
                 return;
             }
             
             // Try to get device status
-            const deviceInfo = widgetState.topazObject.GetTabletState();
+            const tabletState = GetTabletState();
+            console.log('Tablet state:', tabletState);
             
-            if (deviceInfo && deviceInfo !== -1) {
+            // TabletState returns 1 if connected and active, 0 if not connected
+            // It might return as string or number
+            const isConnected = tabletState === '1' || tabletState === 1 || tabletState === '1\n' || tabletState === '1\r\n';
+            
+            if (isConnected) {
                 if (!widgetState.deviceConnected) {
                     widgetState.deviceConnected = true;
                     updateDeviceStatus('Topaz Signature Pad connected', 'success');
                     enableControls();
                 }
             } else {
+                // Always update status if not connected (fixes stuck "Checking..." message)
                 if (widgetState.deviceConnected) {
                     widgetState.deviceConnected = false;
                     updateDeviceStatus('Topaz Signature Pad disconnected', 'warning');
                     disableControls();
+                } else {
+                    // First check - device not connected yet
+                    updateDeviceStatus('Topaz Signature Pad not connected. Please connect the device.', 'warning');
                 }
             }
         } catch (error) {
-            if (widgetState.deviceConnected) {
-                widgetState.deviceConnected = false;
-                updateDeviceStatus('Error checking device: ' + error.message, 'error');
-                disableControls();
-            }
+            console.error('Error checking device connection:', error);
+            widgetState.deviceConnected = false;
+            updateDeviceStatus('Error checking device: ' + error.message, 'error');
+            disableControls();
         }
     }
     
@@ -175,47 +204,56 @@
     
     /**
      * Capture signature from Topaz pad
+     * Based on working example from https://github.com/ed-hughes/ed-hughes.github.io/blob/main/topaz_example.html
      */
     function captureSignature() {
         try {
-            if (!widgetState.deviceConnected || !widgetState.topazObject) {
+            if (!widgetState.deviceConnected || !widgetState.canvasContext) {
                 alert('Topaz Signature Pad is not connected. Please connect the device and try again.');
                 return;
             }
             
-            updateDeviceStatus('Please sign on the pad...', 'info');
-            elements.captureBtn.disabled = true;
+            var ctx = widgetState.canvasContext;
+            var canvas = elements.signatureCanvas;
             
-            // Capture signature from Topaz pad
-            // SigWeb methods may vary based on version, adjust as needed
-            const signatureData = widgetState.topazObject.GetSigString();
-            
-            if (signatureData && signatureData.length > 0) {
-                // Convert signature data to image
-                const imageData = widgetState.topazObject.GetSigImage();
-                
-                // Store signature data
-                widgetState.signatureData = signatureData;
-                widgetState.signatureImage = imageData;
-                
-                // Display signature on canvas
-                displaySignature(imageData);
-                
-                // Enable accept button
-                elements.acceptBtn.disabled = false;
-                elements.captureBtn.disabled = false;
-                
-                updateDeviceStatus('Signature captured. Click Accept to use it.', 'success');
-                
-            } else {
-                alert('No signature data captured. Please try again.');
-                elements.captureBtn.disabled = false;
-                updateDeviceStatus('Signature capture failed. Please try again.', 'error');
+            // Set display size to match canvas (following example pattern)
+            if (typeof SetDisplayXSize !== 'undefined') {
+                SetDisplayXSize(canvas.width);
+            }
+            if (typeof SetDisplayYSize !== 'undefined') {
+                SetDisplayYSize(canvas.height);
             }
             
+            // Clear any existing tablet state and timer
+            if (widgetState.tabletTimer) {
+                SetTabletState(0, widgetState.tabletTimer);
+                widgetState.tabletTimer = null;
+            } else {
+                SetTabletState(0, null);
+            }
+            
+            // Set justify mode (from example)
+            if (typeof SetJustifyMode !== 'undefined') {
+                SetJustifyMode(0);
+            }
+            
+            // Clear tablet before starting
+            if (typeof ClearTablet !== 'undefined') {
+                ClearTablet();
+            }
+            
+            // Connect tablet to canvas with 50ms refresh rate (matching example)
+            widgetState.tabletTimer = SetTabletState(1, ctx, 50);
+            
+            // Update UI
+            updateDeviceStatus('Please sign on the pad, then click Accept Signature...', 'info');
+            elements.captureBtn.disabled = true;
+            elements.clearBtn.disabled = false;
+            elements.acceptBtn.disabled = false;
+            
         } catch (error) {
-            console.error('Error capturing signature:', error);
-            alert('Error capturing signature: ' + error.message);
+            console.error('Error starting signature capture:', error);
+            alert('Error starting signature capture: ' + error.message);
             elements.captureBtn.disabled = false;
             updateDeviceStatus('Error: ' + error.message, 'error');
         }
@@ -261,6 +299,7 @@
     
     /**
      * Clear signature
+     * Based on working example pattern
      */
     function clearSignature() {
         try {
@@ -268,6 +307,11 @@
             const canvas = elements.signatureCanvas;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Clear tablet (from example)
+            if (typeof ClearTablet !== 'undefined') {
+                ClearTablet();
+            }
             
             // Reset state
             widgetState.signatureCaptured = false;
@@ -283,15 +327,6 @@
             elements.signatureInfo.style.display = 'none';
             elements.acceptBtn.disabled = true;
             
-            // Clear Topaz pad if connected
-            if (widgetState.topazObject && widgetState.deviceConnected) {
-                try {
-                    widgetState.topazObject.ClearTablet();
-                } catch (e) {
-                    console.warn('Could not clear tablet:', e);
-                }
-            }
-            
             updateDeviceStatus('Signature cleared', 'info');
             
         } catch (error) {
@@ -301,47 +336,101 @@
     
     /**
      * Accept signature and submit to Jotform
+     * Based on working example pattern
      */
     function acceptSignature() {
         try {
-            if (!widgetState.signatureData || !widgetState.signatureImage) {
-                alert('No signature to accept. Please capture a signature first.');
+            // Check if signature exists (following example pattern)
+            if (typeof NumberOfTabletPoints === 'undefined' || NumberOfTabletPoints() == 0) {
+                alert('Please sign before continuing');
                 return;
             }
             
-            // Mark as captured
-            widgetState.signatureCaptured = true;
+            // Disconnect tablet first (from example)
+            if (widgetState.tabletTimer) {
+                SetTabletState(0, widgetState.tabletTimer);
+                widgetState.tabletTimer = null;
+            }
             
-            // Convert image to base64 for storage
-            const canvas = elements.signatureCanvas;
-            const imageBase64 = canvas.toDataURL('image/png');
+            // Set compression mode and image properties before getting signature
+            if (typeof SetSigCompressionMode !== 'undefined') {
+                SetSigCompressionMode(1);
+            }
             
-            // Update hidden inputs
-            if (elements.signatureDataInput) {
-                elements.signatureDataInput.value = JSON.stringify({
-                    signatureData: widgetState.signatureData,
-                    timestamp: new Date().toISOString(),
-                    format: 'topaz-sigweb'
+            var canvas = elements.signatureCanvas;
+            if (typeof SetImageXSize !== 'undefined') {
+                SetImageXSize(canvas.width);
+            }
+            if (typeof SetImageYSize !== 'undefined') {
+                SetImageYSize(canvas.height);
+            }
+            if (typeof SetImagePenWidth !== 'undefined') {
+                SetImagePenWidth(5);
+            }
+            
+            // Get signature string (Topaz format with biometric info)
+            if (typeof GetSigString !== 'undefined') {
+                widgetState.signatureData = GetSigString();
+                console.log('SigString: ' + widgetState.signatureData);
+            }
+            
+            // Get signature image as base64 (callback pattern from example)
+            if (typeof GetSigImageB64 !== 'undefined') {
+                GetSigImageB64(function(base64Image) {
+                    if (base64Image && base64Image.length > 0) {
+                        widgetState.signatureImage = base64Image;
+                        
+                        // Store as data URL (matching example format)
+                        var imageDataUrl = 'data:image/jpeg;base64,' + base64Image;
+                        
+                        // Display signature on canvas
+                        displaySignature(imageDataUrl);
+                        
+                        // Mark as captured
+                        widgetState.signatureCaptured = true;
+                        
+                        // Convert canvas to base64 for storage
+                        const canvas = elements.signatureCanvas;
+                        const imageBase64 = canvas.toDataURL('image/png');
+                        
+                        // Update hidden inputs
+                        if (elements.signatureDataInput) {
+                            elements.signatureDataInput.value = JSON.stringify({
+                                signatureData: widgetState.signatureData,
+                                timestamp: new Date().toISOString(),
+                                format: 'topaz-sigweb'
+                            });
+                        }
+                        
+                        if (elements.signatureImageInput) {
+                            elements.signatureImageInput.value = imageBase64;
+                        }
+                        
+                        // Update UI
+                        elements.signatureInfo.style.display = 'block';
+                        elements.signatureTimestamp.textContent = 'Captured: ' + new Date().toLocaleString();
+                        elements.acceptBtn.disabled = true;
+                        elements.captureBtn.disabled = false;
+                        elements.clearBtn.disabled = true;
+                        
+                        // Trigger Jotform field update
+                        updateJotformField();
+                        
+                        updateDeviceStatus('Signature accepted and saved', 'success');
+                    } else {
+                        alert('No signature image captured. Please try again.');
+                        elements.acceptBtn.disabled = false;
+                        updateDeviceStatus('Signature capture failed. Please try again.', 'error');
+                    }
                 });
+            } else {
+                alert('Unable to get signature image. Please ensure SigWebTablet.js is loaded.');
             }
-            
-            if (elements.signatureImageInput) {
-                elements.signatureImageInput.value = imageBase64;
-            }
-            
-            // Update UI
-            elements.signatureInfo.style.display = 'block';
-            elements.signatureTimestamp.textContent = 'Captured: ' + new Date().toLocaleString();
-            elements.acceptBtn.disabled = true;
-            
-            // Trigger Jotform field update
-            updateJotformField();
-            
-            updateDeviceStatus('Signature accepted and saved', 'success');
             
         } catch (error) {
             console.error('Error accepting signature:', error);
             alert('Error accepting signature: ' + error.message);
+            elements.acceptBtn.disabled = false;
         }
     }
     
@@ -425,6 +514,33 @@
         return 'signature';
     }
     
+    /**
+     * Cleanup function to disconnect tablet on page unload
+     * Based on working example pattern
+     */
+    function cleanup() {
+        try {
+            // Clear tablet and disconnect (matching example pattern)
+            if (typeof ClearTablet !== 'undefined') {
+                ClearTablet();
+            }
+            
+            // Disconnect tablet state (pass timer to SetTabletState like in example)
+            if (widgetState.tabletTimer) {
+                if (typeof SetTabletState !== 'undefined') {
+                    SetTabletState(0, widgetState.tabletTimer);
+                }
+                widgetState.tabletTimer = null;
+            } else {
+                if (typeof SetTabletState !== 'undefined') {
+                    SetTabletState(0, null);
+                }
+            }
+        } catch (error) {
+            console.warn('Error during cleanup:', error);
+        }
+    }
+    
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -432,11 +548,16 @@
         init();
     }
     
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
+    window.addEventListener('unload', cleanup);
+    
     // Export for external access if needed
     window.TopazSignatureWidget = {
         capture: captureSignature,
         clear: clearSignature,
         accept: acceptSignature,
+        cleanup: cleanup,
         getSignature: function() {
             return {
                 data: widgetState.signatureData,

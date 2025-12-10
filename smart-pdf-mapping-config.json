@@ -40,7 +40,7 @@
     ],
     "connectionType": "USB",
     "apiEndpoints": {
-      "sigweb": "https://www.topazsystems.com/sigweb/sigweb.js"
+      "sigweb": "https://www.sigplusweb.com/SigWebTablet.js"
     }
   },
   
