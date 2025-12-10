@@ -39,7 +39,8 @@
         signatureInfo: null,
         signatureTimestamp: null,
         signatureDataInput: null,
-        signatureImageInput: null
+        signatureImageInput: null,
+        validationInfo: null
     };
     
     /**
@@ -58,6 +59,7 @@
         elements.signatureTimestamp = document.getElementById('signatureTimestamp');
         elements.signatureDataInput = document.getElementById('signatureData');
         elements.signatureImageInput = document.getElementById('signatureImage');
+        elements.validationInfo = document.getElementById('validationInfo');
         
         // Initialize Topaz SigWeb
         initializeTopaz();
@@ -457,11 +459,75 @@
     }
     
     /**
+     * Get widget data for Jotform submission
+     * Returns value and validation status
+     */
+    function getData() {
+        // Check if signature is in progress (user clicked capture but hasn't accepted)
+        var isCapturing = elements.captureBtn && elements.captureBtn.disabled && 
+                         elements.acceptBtn && !elements.acceptBtn.disabled;
+        
+        if (isCapturing || !widgetState.signatureCaptured) {
+            // Signature not completed - show validation message
+            if (elements.validationInfo) {
+                elements.validationInfo.style.display = 'block';
+            }
+            return {
+                'value': '',
+                'valid': false
+            };
+        }
+        
+        // Hide validation message if signature is valid
+        if (elements.validationInfo) {
+            elements.validationInfo.style.display = 'none';
+        }
+        
+        // Signature is captured and accepted
+        var signatureValue = '';
+        if (elements.signatureImageInput && elements.signatureImageInput.value) {
+            // Use the base64 image as the value for Smart PDF mapping
+            signatureValue = elements.signatureImageInput.value;
+        } else if (widgetState.signatureImage) {
+            // Fallback to stored image
+            signatureValue = 'data:image/jpeg;base64,' + widgetState.signatureImage;
+        }
+        
+        return {
+            'value': signatureValue,
+            'valid': signatureValue !== ''
+        };
+    }
+    
+    /**
+     * Resize widget frame to fit content
+     */
+    function resizeFrame() {
+        try {
+            if (typeof window.JFCustomWidget !== 'undefined' && window.JFCustomWidget.requestFrameResize) {
+                var container = elements.container;
+                if (container) {
+                    window.JFCustomWidget.requestFrameResize({
+                        'width': container.offsetWidth + 10,
+                        'height': container.offsetHeight + 20
+                    });
+                }
+            }
+        } catch (error) {
+            console.warn('Error resizing frame:', error);
+        }
+    }
+    
+    /**
      * Setup Jotform integration
      */
     function setupJotformIntegration() {
-        // Wait for Jotform to be ready
-        if (typeof window.JFCustomWidget !== 'undefined') {
+        // Use Jotform's domReady utility if available, otherwise wait for load
+        if (typeof window.JFCustomWidgetUtils !== 'undefined' && window.JFCustomWidgetUtils.domReady) {
+            window.JFCustomWidgetUtils.domReady(function() {
+                registerWithJotform();
+            });
+        } else if (typeof window.JFCustomWidget !== 'undefined') {
             registerWithJotform();
         } else {
             // Wait for Jotform to load
@@ -480,22 +546,14 @@
             if (typeof window.JFCustomWidget !== 'undefined') {
                 window.JFCustomWidget.subscribe('ready', function(data) {
                     console.log('Jotform widget ready:', data);
+                    // Resize frame after initialization
+                    setTimeout(resizeFrame, 100);
                 });
                 
                 window.JFCustomWidget.subscribe('submit', function(data) {
-                    // Ensure signature data is included in submission
-                    if (widgetState.signatureCaptured) {
-                        const signatureData = {
-                            signatureData: widgetState.signatureData,
-                            signatureImage: elements.signatureImageInput ? elements.signatureImageInput.value : null,
-                            timestamp: new Date().toISOString()
-                        };
-                        
-                        // Send to Jotform
-                        window.JFCustomWidget.sendData({
-                            signature: signatureData
-                        });
-                    }
+                    // Send widget data on form submission
+                    var widgetData = getData();
+                    window.JFCustomWidget.sendSubmit(widgetData);
                 });
             }
         } catch (error) {
@@ -508,32 +566,29 @@
      */
     function updateJotformField() {
         try {
-            // Try to find and update Jotform field
-            const fieldName = getJotformFieldName();
-            
-            if (fieldName) {
-                // Update field value using Jotform API
-                if (typeof window.JFCustomWidget !== 'undefined') {
+            // Update field value using Jotform API
+            if (typeof window.JFCustomWidget !== 'undefined') {
+                var widgetData = getData();
+                
+                // Send the signature image as the main value for Smart PDF mapping
+                window.JFCustomWidget.sendData({
+                    value: widgetData.value,
+                    valid: widgetData.valid
+                });
+                
+                // Also send signature data as additional data
+                if (elements.signatureDataInput && elements.signatureDataInput.value) {
                     window.JFCustomWidget.sendData({
-                        value: elements.signatureImageInput ? elements.signatureImageInput.value : '',
-                        signatureData: elements.signatureDataInput ? elements.signatureDataInput.value : ''
+                        signatureData: elements.signatureDataInput.value
                     });
                 }
+                
+                // Resize frame after update
+                setTimeout(resizeFrame, 100);
             }
         } catch (error) {
             console.error('Error updating Jotform field:', error);
         }
-    }
-    
-    /**
-     * Get Jotform field name from context
-     */
-    function getJotformFieldName() {
-        // Try to get field name from various sources
-        if (typeof window.JFCustomWidget !== 'undefined') {
-            return window.JFCustomWidget.getWidgetSetting('fieldName') || 'signature';
-        }
-        return 'signature';
     }
     
     /**
@@ -564,7 +619,12 @@
     }
     
     // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
+    // Use Jotform's domReady if available, otherwise use standard DOM ready
+    if (typeof window.JFCustomWidgetUtils !== 'undefined' && window.JFCustomWidgetUtils.domReady) {
+        window.JFCustomWidgetUtils.domReady(function() {
+            init();
+        });
+    } else if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
@@ -580,6 +640,8 @@
         clear: clearSignature,
         accept: acceptSignature,
         cleanup: cleanup,
+        getData: getData,
+        resizeFrame: resizeFrame,
         getSignature: function() {
             return {
                 data: widgetState.signatureData,

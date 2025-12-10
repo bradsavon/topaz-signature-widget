@@ -40,11 +40,17 @@
             <p class="timestamp" id="signatureTimestamp"></p>
         </div>
         
+        <div class="validation-info" id="validationInfo" style="display: none;">
+            <p class="validation-message">← You have to finish signing before submitting form!</p>
+        </div>
+        
         <!-- Hidden input for Jotform -->
         <input type="hidden" id="signatureData" name="signatureData" />
         <input type="hidden" id="signatureImage" name="signatureImage" />
     </div>
     
+    <!-- Jotform Custom Widget SDK -->
+    <script src="https://cdn.jotfor.ms/s/umd/latest/for-custom-widgets.js"></script>
     <!-- Topaz SigWeb SDK -->
     <script src="https://www.sigplusweb.com/SigWebTablet.js"></script>
     <script src="topaz-signature-widget.js"></script>
