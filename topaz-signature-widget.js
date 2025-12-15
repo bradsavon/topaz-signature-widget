@@ -124,7 +124,11 @@
         try {
             // Check if SigWeb functions are available
             if (typeof GetTabletState === 'undefined') {
-                updateDeviceStatus('SigWeb functions not available', 'error');
+                if (widgetState.deviceConnected) {
+                    widgetState.deviceConnected = false;
+                    updateDeviceStatus('SigWeb functions not available', 'error');
+                    disableControls();
+                }
                 return;
             }
             
@@ -134,7 +138,6 @@
                 setTimeout(function() {
                     widgetState.justFinishedCapture = false;
                 }, 2000);
-                return;
             }
             
             // Try to get device status
